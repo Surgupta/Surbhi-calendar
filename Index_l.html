@@ -1,0 +1,245 @@
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  .wrap { padding: 1rem 0 1.5rem; font-family: var(--font-sans, sans-serif); }
+  .cal-head { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 1.25rem; }
+  html, body { margin: 0; padding: 0; font-family: Georgia, sans-serif; background: #fff; }
+  .cal-month { font-family: Georgia, serif; font-size: 42px; font-weight: 400; color: #222; line-height: 1; }
+  .cal-year { font-size: 26px; font-weight: 500; color: #222; line-height: 1.2; }
+  .cal-fy { font-size: 12px; color: #888; margin-left: 2px; }
+  .goals-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1.25rem; }
+  .goal-chip { display: flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: 12px; cursor: pointer; border: 1px solid; }
+  .goal-chip .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .goal-chip span { color: #222; }
+  .add-chip { padding: 4px 10px; border-radius: 20px; font-size: 12px; background: none; border: 1px dashed #aaa; color: #888; cursor: pointer; }
+  .add-chip:hover { background: #f5f5f5; }
+  .day-labels { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 3px; }
+  .dl { text-align: center; font-size: 11px; font-weight: 500; color: #888; padding: 3px 0; letter-spacing: 0.04em; }
+  .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .cell { border: 1px solid #e0e0e0; border-radius: 8px; min-height: 90px; background: #fff; cursor: pointer; position: relative; overflow: hidden; padding: 5px; }
+  .cell:hover { border-color: #bbb; }
+  .cell.empty { background: transparent; border-color: transparent; cursor: default; pointer-events: none; }
+  .cell.today { border: 2px solid #D4537E; }
+  .cell-num { font-size: 13px; font-weight: 500; color: #888; position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; }
+  .today-pip { width: 6px; height: 6px; border-radius: 50%; background: #D4537E; display: inline-block; }
+  .cell-dots { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 3px; position: relative; z-index: 2; }
+  .cell-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+  .cell-note { font-size: 10px; color: #888; margin-top: 3px; line-height: 1.3; word-break: break-word; position: relative; z-index: 2; }
+  .floral { position: absolute; bottom: 0; right: 0; opacity: 0.13; pointer-events: none; z-index: 1; }
+  .modal-overlay { display: none; position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.3); z-index: 200; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: #fff; border-radius: 14px; border: 1px solid #ccc; padding: 1.25rem; width: 310px; max-width: 92vw; }
+  .modal-hd { font-size: 16px; font-weight: 500; color: #222; margin-bottom: 12px; }
+  .modal textarea { width: 100%; height: 75px; resize: none; font-size: 13px; padding: 8px; border-radius: 8px; border: 1px solid #ccc; background: #f8f8f8; color: #222; font-family: sans-serif; outline: none; margin-bottom: 10px; box-sizing: border-box; }
+  .modal textarea:focus { border-color: #D4537E; }
+  .modal-gl { font-size: 12px; color: #888; margin-bottom: 6px; }
+  .modal-checks { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+  .modal-check { display: flex; align-items: center; gap: 7px; font-size: 13px; color: #222; cursor: pointer; }
+  .modal-check input { cursor: pointer; accent-color: #D4537E; }
+  .modal-acts { display: flex; gap: 8px; justify-content: flex-end; }
+  .btn-s { font-size: 13px; background: #D4537E; color: #fff; border: none; border-radius: 8px; padding: 7px 16px; cursor: pointer; font-family: sans-serif; }
+  .btn-s:hover { background: #993556; }
+  .btn-c { font-size: 13px; background: none; color: #888; border: 1px solid #ccc; border-radius: 8px; padding: 7px 14px; cursor: pointer; font-family: sans-serif; }
+  .edit-modal { background: #fff; border-radius: 14px; border: 1px solid #ccc; padding: 1.25rem; width: 310px; max-width: 92vw; }
+  .edit-modal input { width: 100%; font-size: 13px; padding: 7px 9px; border-radius: 8px; border: 1px solid #ccc; background: #f8f8f8; color: #222; font-family: sans-serif; outline: none; margin-bottom: 10px; box-sizing: border-box; }
+  .color-swatches { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px; }
+  .swatch { width: 22px; height: 22px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; }
+  .swatch.sel { border-color: #222; }
+  .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #888; }
+</style>
+
+<div class="wrap">
+  <div class="cal-head">
+    <div class="cal-month">April</div>
+    <div>
+      <div class="cal-year">2026</div>
+      <div class="cal-fy">FY26</div>
+    </div>
+  </div>
+  <div class="goals-row" id="goalsRow"></div>
+  <div class="day-labels">
+    <div class="dl">Sun</div><div class="dl">Mon</div><div class="dl">Tue</div>
+    <div class="dl">Wed</div><div class="dl">Thu</div><div class="dl">Fri</div><div class="dl">Sat</div>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="legend" id="legend"></div>
+</div>
+
+<div class="modal-overlay" id="dayOverlay">
+  <div class="modal">
+    <div class="modal-hd" id="dayTitle">April 1</div>
+    <textarea id="dayNote" placeholder="Scribble your notes here..."></textarea>
+    <div class="modal-gl">Goals worked on today:</div>
+    <div class="modal-checks" id="dayChecks"></div>
+    <div class="modal-acts">
+      <button class="btn-c" onclick="closeDay()">Cancel</button>
+      <button class="btn-s" onclick="saveDay()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editOverlay">
+  <div class="edit-modal">
+    <div class="modal-hd" id="editTitle">Edit goal</div>
+    <input type="text" id="editInput" placeholder="Goal name..." />
+    <div style="font-size:12px;color:#888;margin-bottom:6px;">Color:</div>
+    <div class="color-swatches" id="colorSwatches"></div>
+    <div class="modal-acts">
+      <button class="btn-c" onclick="closeEdit()">Cancel</button>
+      <button class="btn-s" onclick="saveEdit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const COLORS = ['#D4537E','#534AB7','#1D9E75','#D85A30','#378ADD','#BA7517','#639922','#993556'];
+const FLORALS = [
+  `<svg width="54" height="54" viewBox="0 0 54 54" fill="none"><ellipse cx="27" cy="14" rx="7" ry="12" fill="#F4C0D1" transform="rotate(0 27 27)"/><ellipse cx="27" cy="14" rx="7" ry="12" fill="#F4C0D1" transform="rotate(45 27 27)"/><ellipse cx="27" cy="14" rx="7" ry="12" fill="#F4C0D1" transform="rotate(90 27 27)"/><ellipse cx="27" cy="14" rx="7" ry="12" fill="#F4C0D1" transform="rotate(135 27 27)"/><ellipse cx="27" cy="14" rx="7" ry="12" fill="#F4C0D1" transform="rotate(180 27 27)"/><ellipse cx="27" cy="14" rx="7" ry="12" fill="#F4C0D1" transform="rotate(225 27 27)"/><ellipse cx="27" cy="14" rx="7" ry="12" fill="#F4C0D1" transform="rotate(270 27 27)"/><ellipse cx="27" cy="14" rx="7" ry="12" fill="#F4C0D1" transform="rotate(315 27 27)"/><circle cx="27" cy="27" r="6" fill="#FAC775"/></svg>`,
+  `<svg width="48" height="48" viewBox="0 0 48 48" fill="none"><ellipse cx="24" cy="10" rx="5" ry="10" fill="#F0997B" transform="rotate(0 24 24)"/><ellipse cx="24" cy="10" rx="5" ry="10" fill="#F0997B" transform="rotate(60 24 24)"/><ellipse cx="24" cy="10" rx="5" ry="10" fill="#F0997B" transform="rotate(120 24 24)"/><ellipse cx="24" cy="10" rx="5" ry="10" fill="#F0997B" transform="rotate(180 24 24)"/><ellipse cx="24" cy="10" rx="5" ry="10" fill="#F0997B" transform="rotate(240 24 24)"/><ellipse cx="24" cy="10" rx="5" ry="10" fill="#F0997B" transform="rotate(300 24 24)"/><circle cx="24" cy="24" r="5" fill="#EF9F27"/></svg>`,
+  `<svg width="44" height="44" viewBox="0 0 44 44" fill="none"><ellipse cx="22" cy="8" rx="4" ry="9" fill="#AFA9EC" transform="rotate(0 22 22)"/><ellipse cx="22" cy="8" rx="4" ry="9" fill="#AFA9EC" transform="rotate(72 22 22)"/><ellipse cx="22" cy="8" rx="4" ry="9" fill="#AFA9EC" transform="rotate(144 22 22)"/><ellipse cx="22" cy="8" rx="4" ry="9" fill="#AFA9EC" transform="rotate(216 22 22)"/><ellipse cx="22" cy="8" rx="4" ry="9" fill="#AFA9EC" transform="rotate(288 22 22)"/><circle cx="22" cy="22" r="5" fill="#FAC775"/></svg>`,
+  `<svg width="50" height="50" viewBox="0 0 50 50" fill="none"><ellipse cx="25" cy="9" rx="6" ry="11" fill="#9FE1CB" transform="rotate(0 25 25)"/><ellipse cx="25" cy="9" rx="6" ry="11" fill="#9FE1CB" transform="rotate(90 25 25)"/><ellipse cx="25" cy="9" rx="6" ry="11" fill="#9FE1CB" transform="rotate(180 25 25)"/><ellipse cx="25" cy="9" rx="6" ry="11" fill="#9FE1CB" transform="rotate(270 25 25)"/><circle cx="25" cy="25" r="6" fill="#EF9F27"/></svg>`,
+  `<svg width="42" height="42" viewBox="0 0 42 42" fill="none"><ellipse cx="21" cy="7" rx="5" ry="9" fill="#F4C0D1" transform="rotate(30 21 21)"/><ellipse cx="21" cy="7" rx="5" ry="9" fill="#ED93B1" transform="rotate(90 21 21)"/><ellipse cx="21" cy="7" rx="5" ry="9" fill="#F4C0D1" transform="rotate(150 21 21)"/><ellipse cx="21" cy="7" rx="5" ry="9" fill="#ED93B1" transform="rotate(210 21 21)"/><ellipse cx="21" cy="7" rx="5" ry="9" fill="#F4C0D1" transform="rotate(270 21 21)"/><ellipse cx="21" cy="7" rx="5" ry="9" fill="#ED93B1" transform="rotate(330 21 21)"/><circle cx="21" cy="21" r="5" fill="#FAC775"/></svg>`
+];
+
+let goals = [
+  {id:1, text:'Deep work 2h/day', color: COLORS[0]},
+  {id:2, text:'Exercise', color: COLORS[1]},
+  {id:3, text:'Read 20 min', color: COLORS[2]},
+];
+let dayData = {};
+let editingDay = null;
+let editingGoal = null;
+let editColor = COLORS[0];
+let nextId = 4;
+
+const today = new Date();
+const isApril = today.getFullYear()===2026 && today.getMonth()===3;
+const todayD = isApril ? today.getDate() : null;
+
+function renderGoals() {
+  const row = document.getElementById('goalsRow');
+  row.innerHTML = '';
+  goals.forEach(g => {
+    const chip = document.createElement('div');
+    chip.className = 'goal-chip';
+    chip.style.borderColor = g.color + '55';
+    chip.style.background = g.color + '18';
+    chip.innerHTML = `<div class="dot" style="background:${g.color}"></div><span>${g.text}</span>`;
+    chip.onclick = () => openEdit(g);
+    row.appendChild(chip);
+  });
+  const add = document.createElement('button');
+  add.className = 'add-chip';
+  add.textContent = '+ add goal';
+  add.onclick = () => openEdit(null);
+  row.appendChild(add);
+  renderLegend();
+  renderGrid();
+}
+
+function renderLegend() {
+  const leg = document.getElementById('legend');
+  leg.innerHTML = '';
+  goals.forEach(g => {
+    const d = document.createElement('div');
+    d.className = 'legend-item';
+    d.innerHTML = `<div style="width:7px;height:7px;border-radius:50%;background:${g.color}"></div>${g.text}`;
+    leg.appendChild(d);
+  });
+}
+
+function renderGrid() {
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  const start = new Date(2026,3,1).getDay();
+  for (let i=0;i<start;i++) {
+    const e = document.createElement('div'); e.className='cell empty'; grid.appendChild(e);
+  }
+  for (let d=1;d<=30;d++) {
+    const cell = document.createElement('div');
+    const data = dayData[d]||{};
+    cell.className = 'cell' + (d===todayD?' today':'');
+    cell.onclick = () => openDay(d);
+    const floral = document.createElement('div');
+    floral.className = 'floral';
+    floral.innerHTML = FLORALS[d % FLORALS.length];
+    cell.appendChild(floral);
+    let inner = `<div class="cell-num"><span>${d}</span>${d===todayD?'<span class="today-pip"></span>':''}</div>`;
+    if (data.checked&&data.checked.length) {
+      inner += '<div class="cell-dots">';
+      data.checked.forEach(gid => {
+        const g = goals.find(x=>x.id===gid);
+        if (g) inner += `<div class="cell-dot" style="background:${g.color}"></div>`;
+      });
+      inner += '</div>';
+    }
+    if (data.note&&data.note.trim()) inner += `<div class="cell-note">${data.note.substring(0,45)}${data.note.length>45?'…':''}</div>`;
+    const inner_div = document.createElement('div');
+    inner_div.style.position = 'relative';
+    inner_div.style.zIndex = '2';
+    inner_div.innerHTML = inner;
+    cell.appendChild(inner_div);
+    grid.appendChild(cell);
+  }
+}
+
+function openDay(d) {
+  editingDay = d;
+  const data = dayData[d]||{};
+  document.getElementById('dayTitle').textContent = `April ${d}, 2026`;
+  document.getElementById('dayNote').value = data.note||'';
+  const checks = document.getElementById('dayChecks');
+  checks.innerHTML = '';
+  goals.forEach(g => {
+    const checked = data.checked&&data.checked.includes(g.id);
+    const lbl = document.createElement('label');
+    lbl.className = 'modal-check';
+    lbl.innerHTML = `<input type="checkbox" value="${g.id}" ${checked?'checked':''}><div style="width:8px;height:8px;border-radius:50%;background:${g.color}"></div>${g.text}`;
+    checks.appendChild(lbl);
+  });
+  document.getElementById('dayOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('dayNote').focus(),50);
+}
+function closeDay() { document.getElementById('dayOverlay').classList.remove('open'); editingDay=null; }
+function saveDay() {
+  const note = document.getElementById('dayNote').value;
+  const cbs = document.querySelectorAll('#dayChecks input[type=checkbox]');
+  const checked = [];
+  cbs.forEach(cb=>{ if(cb.checked) checked.push(parseInt(cb.value)); });
+  dayData[editingDay] = {note, checked};
+  closeDay(); renderGrid();
+}
+
+function openEdit(g) {
+  editingGoal = g;
+  document.getElementById('editTitle').textContent = g ? 'Edit goal' : 'Add goal';
+  document.getElementById('editInput').value = g ? g.text : '';
+  editColor = g ? g.color : COLORS[0];
+  const sw = document.getElementById('colorSwatches');
+  sw.innerHTML = '';
+  COLORS.forEach(c => {
+    const s = document.createElement('div');
+    s.className = 'swatch' + (c===editColor?' sel':'');
+    s.style.background = c;
+    s.onclick = () => { editColor=c; openEdit(editingGoal); };
+    sw.appendChild(s);
+  });
+  document.getElementById('editOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('editInput').focus(),50);
+}
+function closeEdit() { document.getElementById('editOverlay').classList.remove('open'); editingGoal=null; }
+function saveEdit() {
+  const text = document.getElementById('editInput').value.trim()||'Goal';
+  if (editingGoal) {
+    editingGoal.text = text; editingGoal.color = editColor;
+  } else {
+    goals.push({id:nextId++, text, color:editColor});
+  }
+  closeEdit(); renderGoals();
+}
+
+document.getElementById('dayOverlay').addEventListener('click', e=>{if(e.target===document.getElementById('dayOverlay'))closeDay();});
+document.getElementById('editOverlay').addEventListener('click', e=>{if(e.target===document.getElementById('editOverlay'))closeEdit();});
+
+renderGoals();
+</script>
