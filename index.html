@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@700&family=Playfair+Display:ital,wght@1,600&display=swap" rel="stylesheet"/>
-<title>April 2026 – Surbhi's Personal Calendar</title>
+<title>Surbhi's 2026 Calendar</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Georgia, sans-serif; background: #3B1A08; padding: 1.25rem; min-height: 100vh; position: relative; }
@@ -12,10 +12,13 @@
   .wrap-inner { position: relative; z-index: 1; }
   .surbhi-title { text-align: center; margin-bottom: 1rem; font-family: 'Playfair Display', serif; font-size: 26px; font-style: italic; font-weight: 600; letter-spacing: 0.08em; background: linear-gradient(90deg, #fff 0%, #fffde7 20%, #fff9c4 35%, #ffffff 50%, #fff9c4 65%, #fffde7 80%, #fff 100%); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: shimmer 4s linear infinite; filter: drop-shadow(0px 0px 6px rgba(255,255,255,0.8)) drop-shadow(0px 0px 12px rgba(255,255,255,0.4)); }
   @keyframes shimmer { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
-  .cal-head { display: flex; align-items: center; gap: 12px; margin-bottom: 1.25rem; }
-  .cal-month { font-family: Georgia, serif; font-size: 34px; font-weight: 400; color: #F5E6D0; line-height: 1; }
-  .cal-year { font-size: 26px; font-weight: 400; color: #A0785A; }
-  .saved-badge { font-size: 11px; color: #2C1A0E; background: #C8956C; border-radius: 20px; padding: 3px 10px; display: none; margin-left: 8px; }
+  .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; }
+  .cal-month-title { font-family: Georgia, serif; font-size: 34px; font-weight: 400; color: #F5E6D0; line-height: 1; }
+  .cal-year-sub { font-size: 26px; font-weight: 400; color: #A0785A; }
+  .nav-btns { display: flex; align-items: center; gap: 10px; }
+  .nav-btn { background: #7A4A28; border: 1px solid #A0785A; color: #F5E6D0; border-radius: 8px; padding: 6px 16px; font-size: 18px; cursor: pointer; font-family: Georgia, serif; transition: background 0.15s; }
+  .nav-btn:hover { background: #C8956C; color: #2C1A0E; }
+  .saved-badge { font-size: 11px; color: #2C1A0E; background: #C8956C; border-radius: 20px; padding: 3px 10px; display: none; }
   .goals-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1.25rem; }
   .goal-chip { display: flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; border: 1px solid #A0785A; background: #7A4A28; font-family: 'Open Sans', sans-serif; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
   .goal-chip:hover { border-color: #E8A87C; background: #8B5E3C; }
@@ -73,8 +76,14 @@
 <div class="wrap-inner">
   <div class="surbhi-title">✦ Surbhi's Personal Calendar ✦</div>
   <div class="cal-head">
-    <div class="cal-month">April <span class="cal-year">2026</span></div>
-    <span class="saved-badge" id="savedBadge">✓ saved</span>
+    <div>
+      <div class="cal-month-title" id="calMonthTitle">May <span class="cal-year-sub">2026</span></div>
+    </div>
+    <div class="nav-btns">
+      <button class="nav-btn" onclick="prevMonth()">&#8592;</button>
+      <span class="saved-badge" id="savedBadge">✓ saved</span>
+      <button class="nav-btn" onclick="nextMonth()">&#8594;</button>
+    </div>
   </div>
   <div class="goals-row" id="goalsRow"></div>
   <div class="day-labels">
@@ -87,7 +96,7 @@
 
 <div class="modal-overlay" id="dayOverlay">
   <div class="modal">
-    <div class="modal-hd" id="dayTitle">April 1</div>
+    <div class="modal-hd" id="dayTitle">May 1</div>
     <textarea id="dayNote" placeholder="Scribble your notes here..."></textarea>
     <div class="modal-gl">Goals worked on today:</div>
     <div class="modal-checks" id="dayChecks"></div>
@@ -113,8 +122,10 @@
 </div>
 
 <script>
-const STORAGE_KEY = 'april_fy26_calendar';
+const STORAGE_KEY = 'surbhi_2026_calendar';
 const COLORS = ['#FF6B9D','#7C5CFC','#00D4AA','#FF4757','#FFD700','#FF8C42','#00B4D8','#C8FF00'];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAYS_IN_MONTH = [31,28,31,30,31,30,31,31,30,31,30,31];
 
 const SHAPES = [
   (c) => `<svg width="10" height="10" viewBox="0 0 10 10"><polygon points="5,1 9,9 1,9" fill="${c}"/></svg>`,
@@ -141,34 +152,99 @@ const FLORALS = [
 ];
 
 const DEFAULT_GOALS = [
-  {id:1, text:'Deep work 2h/day', color: COLORS[0]},
-  {id:2, text:'Exercise', color: COLORS[1]},
-  {id:3, text:'Read 20 min', color: COLORS[2]},
+  {id:1, text:'Exercise for 20 mins', color: COLORS[0]},
+  {id:2, text:'Meditate for 10 mins', color: COLORS[1]},
+  {id:3, text:'Walk 7,000 steps a day', color: COLORS[2]},
+  {id:4, text:'Read for 15 mins', color: COLORS[3]},
+  {id:5, text:'Take sunlight', color: COLORS[4]},
+  {id:6, text:'Do skincare', color: COLORS[5]},
+  {id:7, text:'Eat one healthy meal', color: COLORS[6]},
+  {id:8, text:'Eat one fruit a day', color: COLORS[7]},
+  {id:9, text:'Drink warm water', color: COLORS[0]},
 ];
+
+function migrateAprilData(data) {
+  try {
+    const oldRaw = localStorage.getItem('april_fy26_calendar');
+    if (!oldRaw) return;
+    const old = JSON.parse(oldRaw);
+    // Migrate goals
+    if (old.goals && old.goals.length) {
+      data.goals = old.goals;
+      data.nextId = old.nextId || 10;
+    }
+    // Migrate April day data into month 3 (April = index 3)
+    if (old.dayData) {
+      if (!data.monthData['2026_3']) data.monthData['2026_3'] = {};
+      Object.keys(old.dayData).forEach(d => {
+        data.monthData['2026_3'][d] = old.dayData[d];
+      });
+    }
+    // Save migrated data and remove old key
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.removeItem('april_fy26_calendar');
+    console.log('April data migrated successfully!');
+  } catch(e) { console.log('Migration error:', e); }
+}
 
 function loadData() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
+    // First load — check for old April data to migrate
+    const fresh = { goals: DEFAULT_GOALS, monthData: {}, nextId: 10 };
+    migrateAprilData(fresh);
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || JSON.stringify(fresh));
   } catch(e) {}
-  return { goals: DEFAULT_GOALS, dayData: {}, nextId: 4 };
+  return { goals: DEFAULT_GOALS, monthData: {}, nextId: 10 };
 }
 
 function saveData() {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ goals, dayData, nextId }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ goals, monthData, nextId }));
     const badge = document.getElementById('savedBadge');
     badge.style.display = 'inline-block';
     setTimeout(() => badge.style.display = 'none', 2000);
   } catch(e) {}
 }
 
-let { goals, dayData, nextId } = loadData();
+let { goals, monthData, nextId } = loadData();
 let editingDay = null, editingGoal = null, editColor = COLORS[0];
 
-const today = new Date();
-const isApril = today.getFullYear() === 2026 && today.getMonth() === 3;
-const todayD = isApril ? today.getDate() : null;
+// Start at current month, clamp to Jan-Dec 2026
+const now = new Date();
+let currentMonth = (now.getFullYear() === 2026) ? now.getMonth() : 4; // default May
+
+function getDaysInMonth(m) {
+  if (m === 1) return 29; // 2026 is not a leap year actually — Feb has 28
+  return DAYS_IN_MONTH[m];
+}
+
+function getMonthKey(m) { return `2026_${m}`; }
+
+function getDayData(m, d) {
+  const mk = getMonthKey(m);
+  return (monthData[mk] && monthData[mk][d]) ? monthData[mk][d] : {};
+}
+
+function setDayData(m, d, data) {
+  const mk = getMonthKey(m);
+  if (!monthData[mk]) monthData[mk] = {};
+  monthData[mk][d] = data;
+}
+
+function prevMonth() {
+  if (currentMonth > 0) { currentMonth--; renderAll(); }
+}
+function nextMonth() {
+  if (currentMonth < 11) { currentMonth++; renderAll(); }
+}
+
+function renderAll() {
+  // Update header
+  document.getElementById('calMonthTitle').innerHTML = `${MONTHS[currentMonth]} <span class="cal-year-sub">2026</span>`;
+  renderGoals();
+}
 
 function renderGoals() {
   const row = document.getElementById('goalsRow');
@@ -203,15 +279,20 @@ function renderLegend() {
 function renderGrid() {
   const grid = document.getElementById('grid');
   grid.innerHTML = '';
-  const start = new Date(2026, 3, 1).getDay();
-  for (let i = 0; i < start; i++) {
+  const m = currentMonth;
+  const daysInMonth = getDaysInMonth(m);
+  const startDay = new Date(2026, m, 1).getDay();
+  const today = new Date();
+  const todayD = (today.getFullYear() === 2026 && today.getMonth() === m) ? today.getDate() : null;
+
+  for (let i = 0; i < startDay; i++) {
     const e = document.createElement('div'); e.className = 'cell empty'; grid.appendChild(e);
   }
-  for (let d = 1; d <= 30; d++) {
+  for (let d = 1; d <= daysInMonth; d++) {
     const cell = document.createElement('div');
-    const data = dayData[d] || {};
+    const data = getDayData(m, d);
     const hasData = (data.note && data.note.trim()) || (data.checked && data.checked.length);
-    const col = (d + new Date(2026,3,1).getDay()) % 2 === 0 ? ' chess-a' : ' chess-b';
+    const col = (d + startDay) % 2 === 0 ? ' chess-a' : ' chess-b';
     cell.className = 'cell' + (d === todayD ? ' today' : '') + (hasData ? ' has-data' : '') + col;
     cell.onclick = () => openDay(d);
     const floral = document.createElement('div');
@@ -231,8 +312,7 @@ function renderGrid() {
     }
     if (data.note && data.note.trim()) inner += `<div class="cell-note">${data.note.substring(0, 45)}${data.note.length > 45 ? '…' : ''}</div>`;
     const inner_div = document.createElement('div');
-    inner_div.style.position = 'relative';
-    inner_div.style.zIndex = '2';
+    inner_div.style.position = 'relative'; inner_div.style.zIndex = '2';
     inner_div.innerHTML = inner;
     cell.appendChild(inner_div);
     grid.appendChild(cell);
@@ -241,8 +321,8 @@ function renderGrid() {
 
 function openDay(d) {
   editingDay = d;
-  const data = dayData[d] || {};
-  document.getElementById('dayTitle').textContent = `April ${d}, 2026`;
+  const data = getDayData(currentMonth, d);
+  document.getElementById('dayTitle').textContent = `${MONTHS[currentMonth]} ${d}, 2026`;
   document.getElementById('dayNote').value = data.note || '';
   const checks = document.getElementById('dayChecks');
   checks.innerHTML = '';
@@ -264,7 +344,7 @@ function saveDay() {
   const cbs = document.querySelectorAll('#dayChecks input[type=checkbox]');
   const checked = [];
   cbs.forEach(cb => { if (cb.checked) checked.push(parseInt(cb.value)); });
-  dayData[editingDay] = { note, checked };
+  setDayData(currentMonth, editingDay, { note, checked });
   saveData(); closeDay(); renderGrid();
 }
 
@@ -296,8 +376,10 @@ function closeEdit() { document.getElementById('editOverlay').classList.remove('
 function deleteGoal() {
   if (!editingGoal) return;
   goals = goals.filter(g => g.id !== editingGoal.id);
-  Object.keys(dayData).forEach(d => {
-    if (dayData[d].checked) dayData[d].checked = dayData[d].checked.filter(id => id !== editingGoal.id);
+  Object.keys(monthData).forEach(mk => {
+    Object.keys(monthData[mk]).forEach(d => {
+      if (monthData[mk][d].checked) monthData[mk][d].checked = monthData[mk][d].checked.filter(id => id !== editingGoal.id);
+    });
   });
   saveData(); closeEdit(); renderGoals();
 }
@@ -312,7 +394,7 @@ function saveEdit() {
 document.getElementById('dayOverlay').addEventListener('click', e => { if (e.target === document.getElementById('dayOverlay')) closeDay(); });
 document.getElementById('editOverlay').addEventListener('click', e => { if (e.target === document.getElementById('editOverlay')) closeEdit(); });
 
-renderGoals();
+renderAll();
 </script>
 </body>
 </html>
