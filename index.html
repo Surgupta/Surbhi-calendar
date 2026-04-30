@@ -5,10 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@700&family=Playfair+Display:ital,wght@1,600&display=swap" rel="stylesheet"/>
 <title>Surbhi's 2026 Calendar</title>
+<style id="bgStyle"></style>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Georgia, sans-serif; background: #3B1A08; padding: 1.25rem; min-height: 100vh; position: relative; }
-  body::before { content: ''; position: fixed; inset: 0; background-size: cover; background-position: center; background-attachment: fixed; opacity: 0.45; z-index: 0; pointer-events: none; background-image: url('https://surgupta.github.io/April-calendar/bg.jpg'); }
+  body::before { content: ''; position: fixed; inset: 0; background-size: cover; background-position: center; background-attachment: fixed; opacity: 0.45; z-index: 0; pointer-events: none; }
   .wrap-inner { position: relative; z-index: 1; }
   .surbhi-title { text-align: center; margin-bottom: 1rem; font-family: 'Playfair Display', serif; font-size: 26px; font-style: italic; font-weight: 600; letter-spacing: 0.08em; background: linear-gradient(90deg, #fff 0%, #fffde7 20%, #fff9c4 35%, #ffffff 50%, #fff9c4 65%, #fffde7 80%, #fff 100%); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: shimmer 4s linear infinite; filter: drop-shadow(0px 0px 6px rgba(255,255,255,0.8)) drop-shadow(0px 0px 12px rgba(255,255,255,0.4)); }
   @keyframes shimmer { 0% { background-position: 0% center; } 100% { background-position: 200% center; } }
@@ -71,15 +72,12 @@
   .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
   .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: #F5E6D0; font-family: 'Open Sans', sans-serif; letter-spacing: 0.04em; text-transform: uppercase; }
 </style>
-  <style id="bgStyle"></style>
 </head>
 <body>
 <div class="wrap-inner">
   <div class="surbhi-title">✦ Surbhi's Personal Calendar ✦</div>
   <div class="cal-head">
-    <div>
-      <div class="cal-month-title" id="calMonthTitle">May <span class="cal-year-sub">2026</span></div>
-    </div>
+    <div class="cal-month-title" id="calMonthTitle">May <span class="cal-year-sub">2026</span></div>
     <div class="nav-btns">
       <button class="nav-btn" onclick="prevMonth()">&#8592;</button>
       <span class="saved-badge" id="savedBadge">✓ saved</span>
@@ -124,9 +122,15 @@
 
 <script>
 const STORAGE_KEY = 'surbhi_2026_calendar';
+const BASE_URL = 'https://surgupta.github.io/Surbhi-calendar/';
 const COLORS = ['#FF6B9D','#7C5CFC','#00D4AA','#FF4757','#FFD700','#FF8C42','#00B4D8','#C8FF00'];
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAYS_IN_MONTH = [31,28,31,30,31,30,31,31,30,31,30,31];
+const BG_IMAGES = {
+  0:'jan-bg.jpg', 1:'feb-bg.jpg', 2:'mar-bg.jpg', 3:'bg.jpg',
+  4:'may-bg.jpg', 5:'jun-bg.jpg', 6:'jul-bg.jpg', 7:'aug-bg.jpg',
+  8:'sep-bg.jpg', 9:'oct-bg.jpg', 10:'nov-bg.jpg', 11:'dec-bg.jpg'
+};
 
 const SHAPES = [
   (c) => `<svg width="10" height="10" viewBox="0 0 10 10"><polygon points="5,1 9,9 1,9" fill="${c}"/></svg>`,
@@ -140,8 +144,7 @@ const SHAPES = [
 ];
 
 function goalShape(id, color) {
-  const fn = SHAPES[(id - 1) % SHAPES.length];
-  return `<span style="display:inline-flex;align-items:center;">${fn(color)}</span>`;
+  return `<span style="display:inline-flex;align-items:center;">${SHAPES[(id-1) % SHAPES.length](color)}</span>`;
 }
 
 const FLORALS = [
@@ -164,38 +167,10 @@ const DEFAULT_GOALS = [
   {id:9, text:'Drink warm water', color: COLORS[0]},
 ];
 
-function migrateAprilData(data) {
-  try {
-    const oldRaw = localStorage.getItem('april_fy26_calendar');
-    if (!oldRaw) return;
-    const old = JSON.parse(oldRaw);
-    // Migrate goals
-    if (old.goals && old.goals.length) {
-      data.goals = old.goals;
-      data.nextId = old.nextId || 10;
-    }
-    // Migrate April day data into month 3 (April = index 3)
-    if (old.dayData) {
-      if (!data.monthData['2026_3']) data.monthData['2026_3'] = {};
-      Object.keys(old.dayData).forEach(d => {
-        data.monthData['2026_3'][d] = old.dayData[d];
-      });
-    }
-    // Save migrated data and remove old key
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    localStorage.removeItem('april_fy26_calendar');
-    console.log('April data migrated successfully!');
-  } catch(e) { console.log('Migration error:', e); }
-}
-
 function loadData() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
-    // First load — check for old April data to migrate
-    const fresh = { goals: DEFAULT_GOALS, monthData: {}, nextId: 10 };
-    migrateAprilData(fresh);
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || JSON.stringify(fresh));
   } catch(e) {}
   return { goals: DEFAULT_GOALS, monthData: {}, nextId: 10 };
 }
@@ -209,37 +184,22 @@ function saveData() {
   } catch(e) {}
 }
 
+function updateBackground(month) {
+  const img = BG_IMAGES[month] || 'bg.jpg';
+  document.getElementById('bgStyle').textContent = `body::before { background-image: url('${BASE_URL}${img}') !important; }`;
+}
+
 let { goals, monthData, nextId } = loadData();
 let editingDay = null, editingGoal = null, editColor = COLORS[0];
-
-// Start at current month, clamp to Jan-Dec 2026
 const now = new Date();
-let currentMonth = (now.getFullYear() === 2026) ? now.getMonth() : 4; // default May
-
-function getDaysInMonth(m) {
-  if (m === 1) return 29; // 2026 is not a leap year actually — Feb has 28
-  return DAYS_IN_MONTH[m];
-}
+let currentMonth = (now.getFullYear() === 2026) ? now.getMonth() : 4;
 
 function getMonthKey(m) { return `2026_${m}`; }
+function getDayData(m, d) { const mk = getMonthKey(m); return (monthData[mk] && monthData[mk][d]) ? monthData[mk][d] : {}; }
+function setDayData(m, d, data) { const mk = getMonthKey(m); if (!monthData[mk]) monthData[mk] = {}; monthData[mk][d] = data; }
 
-function getDayData(m, d) {
-  const mk = getMonthKey(m);
-  return (monthData[mk] && monthData[mk][d]) ? monthData[mk][d] : {};
-}
-
-function setDayData(m, d, data) {
-  const mk = getMonthKey(m);
-  if (!monthData[mk]) monthData[mk] = {};
-  monthData[mk][d] = data;
-}
-
-function prevMonth() {
-  if (currentMonth > 0) { currentMonth--; renderAll(); }
-}
-function nextMonth() {
-  if (currentMonth < 11) { currentMonth++; renderAll(); }
-}
+function prevMonth() { if (currentMonth > 0) { currentMonth--; renderAll(); } }
+function nextMonth() { if (currentMonth < 11) { currentMonth++; renderAll(); } }
 
 function renderAll() {
   updateBackground(currentMonth);
@@ -281,11 +241,10 @@ function renderGrid() {
   const grid = document.getElementById('grid');
   grid.innerHTML = '';
   const m = currentMonth;
-  const daysInMonth = getDaysInMonth(m);
+  const daysInMonth = DAYS_IN_MONTH[m];
   const startDay = new Date(2026, m, 1).getDay();
   const today = new Date();
   const todayD = (today.getFullYear() === 2026 && today.getMonth() === m) ? today.getDate() : null;
-
   for (let i = 0; i < startDay; i++) {
     const e = document.createElement('div'); e.className = 'cell empty'; grid.appendChild(e);
   }
@@ -303,15 +262,12 @@ function renderGrid() {
     let inner = `<div class="cell-num"><span>${d}</span>${d === todayD ? '<span class="today-pip"></span>' : ''}</div>`;
     if (data.checked && data.checked.length) {
       inner += '<div class="cell-dots">';
-      data.checked.forEach(gid => {
-        const g = goals.find(x => x.id === gid);
-        if (g) inner += goalShape(g.id, g.color);
-      });
+      data.checked.forEach(gid => { const g = goals.find(x => x.id === gid); if (g) inner += goalShape(g.id, g.color); });
       inner += '</div>';
       const pct = Math.round((data.checked.length / goals.length) * 100);
       inner += `<div class="cell-pct">Done — ${pct}%</div>`;
     }
-    if (data.note && data.note.trim()) inner += `<div class="cell-note">${data.note.substring(0, 45)}${data.note.length > 45 ? '…' : ''}</div>`;
+    if (data.note && data.note.trim()) inner += `<div class="cell-note">${data.note.substring(0,45)}${data.note.length>45?'…':''}</div>`;
     const inner_div = document.createElement('div');
     inner_div.style.position = 'relative'; inner_div.style.zIndex = '2';
     inner_div.innerHTML = inner;
